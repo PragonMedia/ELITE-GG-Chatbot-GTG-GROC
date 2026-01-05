@@ -79,7 +79,7 @@ $route = $domainRoute['route'];
 
 // Fetch route data from API
 $routeData = null;
-$phoneNumber = "13213980346"; // Fallback default
+$phoneNumber = "18887140777"; // Fallback default
 
 if (!empty($domain) && !empty($route)) {
   error_log("API Request - Fetching phoneNumber for domain: " . $domain . ", route: " . $route);
