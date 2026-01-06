@@ -68,7 +68,7 @@ async function fetchRouteData(domain, route) {
 }
 
 // Global variable to store ringbaID
-let ringbaID = "CAcc4a256e46264286b5df5d7f461ab3ec"; // Fallback default
+let ringbaID = "CAd4c016a37829477688c3482fb6fd01de"; // Fallback default
 
 // Fetch route data on page load
 (async function initRingbaID() {
@@ -395,34 +395,63 @@ $("button.chat-button").on("click", function () {
 
       newUrl.searchParams.delete("qualified");
       newUrl.searchParams.set("qualified", "yes");
+    } else if (buttonValue == "No") {
+      $("#msg_no_q3").removeClass("hidden");
 
-      // Update the URL with the new qualified parameter
-      window.history.replaceState({}, "", newUrl);
+      newUrl.searchParams.delete("qualified");
+      newUrl.searchParams.set("qualified", "no");
 
-      // Load Ringba and call addRingbaTags after qualification
-      setTimeout(() => {
-        loadRingba();
-      }, 100);
+      // Build CLAIM NOW button URL with clickID and mb parameters
+      const clickID =
+        localStorage.getItem("rt_clickid") ||
+        newUrl.searchParams.get("clickid") ||
+        "";
+      const mbParam = newUrl.searchParams.get("mb") || "";
+      // Only set iframe URL if gtg is not "1" (will be shown later based on gtg value)
+      const gtgValue = localStorage.getItem("gtg");
+      if (gtgValue !== "1") {
+        const claimNowIframeUrl = `https://policyfinds.com/sq1/claim-button.html?clickid=${encodeURIComponent(
+          clickID
+        )}&mb=${encodeURIComponent(mbParam)}`;
+
+        // Set the src for the claim now iframe
+        const claimNowIframe = document.getElementById("claim-now-iframe");
+        if (claimNowIframe) {
+          claimNowIframe.src = claimNowIframeUrl;
+        }
+      }
+    }
+
+    // Load Ringba and call addRingbaTags after qualification
+    setTimeout(() => {
+      loadRingba();
+    }, 100);
+    scrollToBottom();
+
+    setTimeout(function () {
+      $("#agentBlock4").removeClass("hidden");
       scrollToBottom();
-
       setTimeout(function () {
-        $("#agentBlock4").removeClass("hidden");
+        $(".temp-typing").remove();
+        $("#msg13").removeClass("hidden").after(typingEffect());
         scrollToBottom();
         setTimeout(function () {
           $(".temp-typing").remove();
-          $("#msg13").removeClass("hidden").after(typingEffect());
+          $("#msg14").removeClass("hidden").after(typingEffect());
           scrollToBottom();
           setTimeout(function () {
             $(".temp-typing").remove();
-            $("#msg14").removeClass("hidden").after(typingEffect());
+            // Show different message based on Yes/No answer
+            if (buttonValue == "Yes") {
+              $("#msg15").removeClass("hidden").after(typingEffect());
+            } else if (buttonValue == "No") {
+              $("#msg15_no").removeClass("hidden").after(typingEffect());
+            }
             scrollToBottom();
             setTimeout(function () {
               $(".temp-typing").remove();
-              $("#msg15").removeClass("hidden").after(typingEffect());
-              scrollToBottom();
-              setTimeout(function () {
-                $(".temp-typing").remove();
-                // Show phone button for "Yes"
+              // Show phone button for "Yes", CLAIM NOW button for "No"
+              if (buttonValue == "Yes") {
                 $("#msg17").before(typingEffect());
                 scrollToBottom();
                 setTimeout(function () {
@@ -431,64 +460,49 @@ $("button.chat-button").on("click", function () {
                   scrollToBottom();
                   startCountdown();
                 }, 500);
-              }, speed);
+              } else if (buttonValue == "No") {
+                // Get gtg value from localStorage
+                const gtgValue = localStorage.getItem("gtg");
+
+                // If gtg is "1", show contact page button
+                // If gtg is "0" or null/undefined, show iframe button
+                if (gtgValue === "1") {
+                  // Show contact page button
+                  $("#msg19-contact").removeClass("hidden");
+                } else {
+                  // Show iframe button (gtg is "0" or null/undefined)
+                  const currentUrl = new URL(window.location.href);
+                  // Preserve all original parameters
+                  preserveUrlParams(currentUrl);
+                  const clickID =
+                    localStorage.getItem("rt_clickid") ||
+                    currentUrl.searchParams.get("clickid") ||
+                    "";
+                  const mbParam = currentUrl.searchParams.get("mb") || "";
+                  const claimNowIframeUrl = `https://policyfinds.com/sq1/claim-button.html?clickid=${encodeURIComponent(
+                    clickID
+                  )}&mb=${encodeURIComponent(mbParam)}`;
+
+                  // Set the src for the claim now iframe
+                  const claimNowIframe =
+                    document.getElementById("claim-now-iframe");
+                  if (claimNowIframe) {
+                    claimNowIframe.src = claimNowIframeUrl;
+                  }
+                  // Show the claim now container (inside chat bubble)
+                  $("#msg19").removeClass("hidden");
+                }
+                startCountdown();
+              }
+              scrollToBottom();
             }, speed);
           }, speed);
         }, speed);
       }, speed);
-    } else if (buttonValue == "No") {
-      $("#msg_no_q3").removeClass("hidden");
+    }, speed);
 
-      newUrl.searchParams.delete("qualified");
-      newUrl.searchParams.set("qualified", "no");
-
-      // Update the URL with the new qualified parameter
-      window.history.replaceState({}, "", newUrl);
-
-      // Show non-dismissible modal after showing user's response
-      setTimeout(function () {
-        const modal = document.getElementById("disqualification-modal");
-        if (modal) {
-          // Prevent body scroll
-          document.body.classList.add("modal-open");
-
-          // Show the modal
-          modal.classList.add("show");
-
-          // Prevent any clicks on the modal background from closing it
-          modal.addEventListener("click", function (e) {
-            e.stopPropagation();
-            e.preventDefault();
-            // Only allow clicks on the modal content itself
-            if (e.target === modal) {
-              e.stopPropagation();
-            }
-          });
-
-          // Prevent closing via ESC key
-          const escapeHandler = function (e) {
-            if (e.key === "Escape" || e.keyCode === 27) {
-              e.preventDefault();
-              e.stopPropagation();
-              e.stopImmediatePropagation();
-            }
-          };
-          document.addEventListener("keydown", escapeHandler, true);
-
-          // Prevent right-click context menu
-          modal.addEventListener("contextmenu", function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-          });
-
-          // Prevent any form of dismissal
-          modal.setAttribute("data-non-dismissible", "true");
-        }
-      }, 500);
-
-      // Exit early - don't continue with the normal flow
-      return;
-    }
+    // Update the URL with the new qualified parameter
+    window.history.replaceState({}, "", newUrl);
   }
 });
 
@@ -541,6 +555,54 @@ function gtag_report_conversion(url) {
   return false;
 }
 
+// Function to show clickwall
+function showClickWall() {
+  const clickWallContainer = document.getElementById("click-wall-container");
+  const iframe = document.getElementById("mao-iframe");
+  const loadingAds = document.getElementById("loading-ads");
+  const errorMessage = document.getElementById("error-message");
+
+  if (!clickWallContainer || !iframe || !loadingAds) {
+    console.error("Clickwall elements not found");
+    return;
+  }
+
+  // Get mb parameter from current page URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const mbValue = urlParams.get("mb") || "";
+
+  // Show the click wall container
+  clickWallContainer.style.display = "block";
+
+  // Show loading spinner, hide iframe and error
+  loadingAds.style.display = "block";
+  iframe.style.display = "none";
+  errorMessage.style.display = "none";
+
+  // Build iframe URL with mb parameter - Load iframe.html, not index.html
+  const iframeUrl = `https://policyfinds.com/sq1/iframe.html${
+    mbValue ? `?mb=${encodeURIComponent(mbValue)}` : ""
+  }`;
+
+  console.log("Loading iframe from:", iframeUrl); // Debug
+
+  // Set iframe source
+  iframe.src = iframeUrl;
+
+  // When iframe loads successfully
+  iframe.onload = () => {
+    loadingAds.style.display = "none";
+    iframe.style.display = "block";
+    scrollToBottom();
+  };
+
+  // Handle iframe load errors
+  iframe.onerror = () => {
+    loadingAds.style.display = "none";
+    errorMessage.style.display = "block";
+  };
+}
+
 // Function to attach click listener to phone button
 function attachPhoneButtonListener() {
   const phoneButton = document.getElementById("phone-number");
@@ -576,6 +638,11 @@ function attachPhoneButtonListener() {
             });
           }
 
+          // Show clickwall after 5 seconds
+          setTimeout(function () {
+            showClickWall();
+          }, 5000);
+
           // Allow the tel: link to work normally (don't prevent default)
           return;
         }
@@ -594,6 +661,11 @@ function attachPhoneButtonListener() {
         if (typeof gtag_report_conversion === "function") {
           gtag_report_conversion(href);
         }
+
+        // Show clickwall after 5 seconds
+        setTimeout(function () {
+          showClickWall();
+        }, 5000);
       }
     });
 
