@@ -103,7 +103,7 @@ async function fetchRouteData(domain, route) {
 }
 
 // Global variable to store ringbaID
-let ringbaID = "CAd4c016a37829477688c3482fb6fd01de"; // Fallback default
+let ringbaID = "CA96589cff1d5d4fa48f459da7dbd3a728"; // Fallback default
 
 // Fetch route data on page load
 (async function initRingbaID() {
