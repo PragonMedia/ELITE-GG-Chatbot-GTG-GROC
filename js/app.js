@@ -20,6 +20,41 @@ function preserveUrlParams(url) {
   return url;
 }
 
+// Reactive phone number update function
+// Called when phone button (msg17) is about to be shown
+// Updates phone number if API data is available, or waits briefly for it
+async function updatePhoneNumberReactive() {
+  // If phone number data is already available, update immediately
+  if (window.phoneNumberData && window.updatePhoneNumberInDOM) {
+    window.updatePhoneNumberInDOM(
+      window.phoneNumberData.phone_number,
+      window.phoneNumberData.formatted_number
+    );
+    return;
+  }
+
+  // If promise exists but hasn't resolved yet, wait for it (with timeout)
+  if (window.phoneNumberPromise) {
+    try {
+      // Wait up to 300ms for the promise to resolve
+      await Promise.race([
+        window.phoneNumberPromise,
+        new Promise((resolve) => setTimeout(resolve, 300)),
+      ]);
+
+      // If data is now available, update it
+      if (window.phoneNumberData && window.updatePhoneNumberInDOM) {
+        window.updatePhoneNumberInDOM(
+          window.phoneNumberData.phone_number,
+          window.phoneNumberData.formatted_number
+        );
+      }
+    } catch (error) {
+      console.error("Error in reactive phone number update:", error);
+    }
+  }
+}
+
 // Function to extract domain and route from current URL
 function getDomainAndRoute() {
   const url = new URL(window.location.href);
@@ -68,7 +103,7 @@ async function fetchRouteData(domain, route) {
 }
 
 // Global variable to store ringbaID
-let ringbaID = "CA96589cff1d5d4fa48f459da7dbd3a728"; // Fallback default
+let ringbaID = "CAd4c016a37829477688c3482fb6fd01de"; // Fallback default
 
 // Fetch route data on page load
 (async function initRingbaID() {
@@ -368,6 +403,8 @@ $("button.chat-button").on("click", function () {
                   scrollToBottom();
                   setTimeout(function () {
                     $(".temp-typing").remove();
+                    // Update phone number reactively before showing button
+                    updatePhoneNumberReactive();
                     $("#msg17").removeClass("hidden");
                     scrollToBottom();
                     startCountdown();
@@ -456,7 +493,16 @@ $("button.chat-button").on("click", function () {
                 scrollToBottom();
                 setTimeout(function () {
                   $(".temp-typing").remove();
+                  // Update phone number reactively before showing button
+                  updatePhoneNumberReactive();
                   $("#msg17").removeClass("hidden");
+                  // Add gtgTrigger class to phone number when user clicks Yes on Medicare Part A and Part B question
+                  const phoneNumberElement =
+                    document.getElementById("phone-number");
+                  if (phoneNumberElement) {
+                    phoneNumberElement.classList.add("gtgTrigger");
+                    console.log("gtgTrigger added to phone number");
+                  }
                   scrollToBottom();
                   startCountdown();
                 }, 500);
