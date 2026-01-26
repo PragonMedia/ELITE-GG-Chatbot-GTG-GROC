@@ -10,47 +10,46 @@
     <link rel="shortcut icon" href="./images/new-logo.png" type="image/png" />
 
     <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=AW-16921817895"
-    ></script>
+    async
+    src="https://www.googletagmanager.com/gtag/js?id=AW-16921817895"
+  ></script>
 
-    <script>
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != "dataLayer" ? "&l=" + l : "";
-        j.async = true;
-        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, "script", "dataLayer", "GTM-P2TD9XKZ");
-    </script>
+  <script>
+    (function (w, d, s, l, i) {
+      w[l] = w[l] || [];
+      w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+      var f = d.getElementsByTagName(s)[0],
+        j = d.createElement(s),
+        dl = l != "dataLayer" ? "&l=" + l : "";
+      j.async = true;
+      j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+      f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-P2TD9XKZ");
+  </script>
     <!-- End Google Tag Manager -->
-
+    
     <script>
-      (function () {
-        try {
-          const originalUrl = new URL(window.location.href);
-          const originalParams = {};
-          originalUrl.searchParams.forEach((value, key) => {
-            originalParams[key] = value;
-          });
-          // ALWAYS store, even if empty (to track that we've captured)
-          sessionStorage.setItem(
-            "original_url_params",
-            JSON.stringify(originalParams)
-          );
+    function trackGTG(e) {
+  e.preventDefault();
 
-          if (Object.keys(originalParams).length > 0) {
-            console.log("Original URL parameters captured:", originalParams);
-          } else {
-            console.log("No URL parameters found on initial load");
-          }
-        } catch (e) {
-          console.error("Error capturing original URL parameters:", e);
-        }
-      })();
+  const phoneLink = document.getElementById("phone-number").href;
+
+  // Always push GTM event first
+  window.dataLayer = window.dataLayer || [];
+  dataLayer.push({ event: "gtg_clicked" });
+
+  // Fire Facebook pixel safely
+  try {
+    if (typeof fbq === "function") {
+      fbq("track", "Lead");
+    }
+  } catch (e) {}
+
+  // Always dial, even if tracking fails
+  setTimeout(() => {
+    window.location.href = phoneLink;
+  }, 150);
+}
     </script>
 
     <!-- CRITICAL: Capture ALL original URL parameters IMMEDIATELY on page load -->
@@ -80,7 +79,7 @@
       })();
     </script>
 
-    <script>
+   <script>
       (async () => {
         // helpers - Preserve ALL original parameters when updating URL
         function pushParams(params) {
@@ -125,10 +124,59 @@
           }
         }
 
-        // fire clickid request
+        // Function to extract domain and route from current URL
+        function getDomainAndRoute() {
+          const url = new URL(window.location.href);
+          let domain = url.hostname;
+          domain = domain.replace(/^www\./, "");
+          const path = url.pathname;
+          const pathSegments = path
+            .split("/")
+            .filter((segment) => segment && !segment.includes("."));
+          const route = pathSegments[0] || "";
+          return { domain, route };
+        }
+
+        // SINGLE API CALL - Fetch route configuration once
+        window.routeConfig = null;
+        const { domain, route } = getDomainAndRoute();
+        
+        if (domain && route) {
+          try {
+            const apiUrl = `/api/v1/domain-route-details?domain=${encodeURIComponent(domain)}&route=${encodeURIComponent(route)}`;
+            const response = await fetch(apiUrl, {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+              },
+            });
+
+            if (response.ok) {
+              const apiData = await response.json();
+              if (apiData && apiData.success && apiData.routeData) {
+                window.routeConfig = {
+                  rtkID: apiData.routeData.rtkID || null,
+                  phoneNumber: apiData.routeData.phoneNumber || null,
+                  ringbaID: apiData.routeData.ringbaID || null,
+                };
+                console.log("Route config fetched (single API call):", window.routeConfig);
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching route config:", error);
+          }
+        }
+
+        // fire clickid request - pass rtkID if available
+        const clickReqBody = new FormData();
+        if (window.routeConfig && window.routeConfig.rtkID !== null) {
+          clickReqBody.append("rtkID", window.routeConfig.rtkID);
+        }
+
         const clickReq = fetch("./clickid.php", {
           method: "POST",
           credentials: "include",
+          body: clickReqBody,
         })
           .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
           .catch(() => null);
@@ -185,6 +233,76 @@
           console.error("GTG fetch error:", error);
         }
       })();
+
+      // Fire phone number request early (parallel with other API calls)
+      // Store phone number data globally for reactive updates
+      window.phoneNumberData = null;
+      window.phoneNumberPromise = (async () => {
+        try {
+          // Use phoneNumber from routeConfig if available, otherwise fetch from PHP
+          if (window.routeConfig && window.routeConfig.phoneNumber) {
+            const phoneNumber = window.routeConfig.phoneNumber.replace(/^\+/, "");
+            const formattedNumber = '+1 (' + phoneNumber.substring(1, 4) + ') ' + phoneNumber.substring(4, 7) + '-' + phoneNumber.substring(7, 11);
+            
+            window.phoneNumberData = {
+              phone_number: phoneNumber,
+              formatted_number: formattedNumber,
+            };
+            console.log("phoneNumber from route config:", phoneNumber);
+            
+            // Update phone number in DOM if elements exist
+            updatePhoneNumberInDOM(phoneNumber, formattedNumber);
+          } else {
+            // Fallback: fetch from PHP endpoint (which will use its own fallback)
+            const phoneNumberParam = window.routeConfig && window.routeConfig.phoneNumber 
+              ? encodeURIComponent(window.routeConfig.phoneNumber) 
+              : '';
+            const numberUrl = phoneNumberParam 
+              ? `./number.php?phoneNumber=${phoneNumberParam}`
+              : './number.php';
+            
+            const response = await fetch(numberUrl, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+
+              if (data.success && data.phone_number) {
+                window.phoneNumberData = {
+                  phone_number: data.phone_number,
+                  formatted_number: data.formatted_number,
+                };
+                console.log("phoneNumber from PHP endpoint:", data.phone_number);
+                
+                // Update phone number in DOM if elements exist
+                updatePhoneNumberInDOM(data.phone_number, data.formatted_number);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching phone number (early fetch):", error);
+        }
+      })();
+
+      // Function to update phone number in DOM (reusable)
+      function updatePhoneNumberInDOM(phoneNumber, formattedNumber) {
+        const phoneElement = document.getElementById("phone-number");
+        if (phoneElement) {
+          phoneElement.href = "tel:+" + phoneNumber;
+        }
+
+        const phoneTextElement = document.getElementById("phone_retreaver");
+        if (phoneTextElement) {
+          phoneTextElement.textContent = formattedNumber;
+        }
+      }
+
+      // Make function globally accessible
+      window.updatePhoneNumberInDOM = updatePhoneNumberInDOM;
     </script>
 
     <link rel="stylesheet" href="./css/app.css" />
@@ -268,13 +386,13 @@
 
   <body>
     <!-- Google Tag Manager (noscript) -->
-     <noscript
-      ><iframe
-        src="https://www.googletagmanager.com/ns.html?id=GTM-P2TD9XKZ"
-        height="0"
-        width="0"
-        style="display: none; visibility: hidden"
-      ></iframe
+    <noscript
+    ><iframe
+    src="https://www.googletagmanager.com/ns.html?id=GTM-P2TD9XKZ"
+    height="0"
+    width="0"
+    style="display: none; visibility: hidden"
+  ></iframe
     ></noscript>
     <!-- End Google Tag Manager (noscript) -->
     <main class="min-h-screen">
@@ -319,7 +437,7 @@
               class="font-bold text-xl sm:text-3xl mt-1"
               style="color: rgb(75 85 99)"
             >
-              Notice: 2026 Medicare Benefit for Groceries, Prescriptions, and
+            Notice: 2026 Medicare Benefit for Groceries, Prescriptions, and
               Other Health Expenses
             </h2>
           </div>
@@ -686,7 +804,7 @@
                     class="bg-gray-200 p-3 rounded-lg shadow-xs mt-2 w-fit hidden"
                   >
                     <p class="text-md text-gray-800">
-                       Tap the number below to call now and get your Health
+                      Tap the number below to call now and get your Health
                       Allowance Card! It only takes 2 minutes. Make sure to
                       mention to the agent that you're calling about the Health
                       Allowance Benefit.
@@ -709,7 +827,7 @@
                     <p class="text-md text-gray-800 py-2">
                       <a
                         id="phone-number"
-                        href="tel:+18887140777"
+                        href="tel:+18887062564"
                         onclick="trackGTG(event)"
                         class="chat-button text-white font-bold bg-blue-500 rounded-full py-3 px-6 ttc-button phone-number"
                         style="
@@ -792,8 +910,6 @@
                   </div>
                 </div>
               </div>
-
-          
               <!-- Disconnect message -->
               <div id="disconnected" class="pt-2 hidden">
                 <div class="relative flex py-5 items-center">
@@ -856,44 +972,32 @@
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script src="./js/app.js"></script>
 
-    <script>
-      async function updatePhoneNumber() {
-        try {
-          const response = await fetch("./number.php", {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
+     <script>
+      // Backup: Update phone number when DOM is ready (if early fetch hasn't completed)
+      document.addEventListener("DOMContentLoaded", async function () {
+        // Wait a bit to see if early fetch completed
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-          if (response.ok) {
-            const data = await response.json();
-
-            if (data.success && data.phone_number) {
-              console.log("phoneNumber from API:", data.phone_number);
-
-              // Update the anchor tag href
-              const phoneElement = document.getElementById("phone-number");
-              if (phoneElement) {
-                phoneElement.href = "tel:+" + data.phone_number;
-              }
-
-              // Update the visible phone number text inside the span
-              const phoneTextElement =
-                document.getElementById("phone_retreaver");
-              if (phoneTextElement) {
-                phoneTextElement.textContent = data.formatted_number;
-              }
+        // If phone number data is already available, update DOM
+        if (window.phoneNumberData) {
+          updatePhoneNumberInDOM(
+            window.phoneNumberData.phone_number,
+            window.phoneNumberData.formatted_number
+          );
+        } else {
+          // If early fetch hasn't completed, wait for it
+          try {
+            await window.phoneNumberPromise;
+            if (window.phoneNumberData) {
+              updatePhoneNumberInDOM(
+                window.phoneNumberData.phone_number,
+                window.phoneNumberData.formatted_number
+              );
             }
+          } catch (error) {
+            console.error("Error in backup phone number update:", error);
           }
-        } catch (error) {
-          console.error("Error fetching phone number:", error);
         }
-      }
-
-      // Call the function when the page loads
-      document.addEventListener("DOMContentLoaded", function () {
-        updatePhoneNumber();
       });
     </script>
 
