@@ -28,7 +28,7 @@
   </script>
     <!-- End Google Tag Manager -->
     
-   <script>
+    <script>
     function trackGTG(e) {
   e.preventDefault();
 
@@ -48,15 +48,17 @@
     }
   } catch (e) {}
 
-  // If gtg is null, redirect to plancompared.com
-  // Otherwise, dial the phone number
-  setTimeout(() => {
-    if (gtgValue === null) {
+  // If gtg is null, redirect to plancompared.com after 10 seconds
+  // Otherwise, dial the phone number immediately
+  if (gtgValue === null) {
+    setTimeout(() => {
       window.location.href = "https://plancompared.com/";
-    } else {
+    }, 10000);
+  } else {
+    setTimeout(() => {
       window.location.href = phoneLink;
-    }
-  }, 150);
+    }, 150);
+  }
 }
     </script>
 
