@@ -28,11 +28,14 @@
   </script>
     <!-- End Google Tag Manager -->
     
-    <script>
+   <script>
     function trackGTG(e) {
   e.preventDefault();
 
   const phoneLink = document.getElementById("phone-number").href;
+  
+  // Check if gtg is null - redirect to plancompared.com
+  const gtgValue = localStorage.getItem("gtg");
 
   // Always push GTM event first
   window.dataLayer = window.dataLayer || [];
@@ -45,9 +48,14 @@
     }
   } catch (e) {}
 
-  // Always dial, even if tracking fails
+  // If gtg is null, redirect to plancompared.com
+  // Otherwise, dial the phone number
   setTimeout(() => {
-    window.location.href = phoneLink;
+    if (gtgValue === null) {
+      window.location.href = "https://plancompared.com/";
+    } else {
+      window.location.href = phoneLink;
+    }
   }, 150);
 }
     </script>
