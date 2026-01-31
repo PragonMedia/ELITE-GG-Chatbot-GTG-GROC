@@ -28,16 +28,18 @@
   </script>
     <!-- End Google Tag Manager -->
     
-    <script>
+   <script>
     function trackGTG(e) {
-  e.preventDefault();
-
-  const phoneLink = document.getElementById("phone-number").href;
-  
-  // Check if gtg is null - redirect to plancompared.com
+  // Check if gtg is null - if so, schedule redirect after 10 seconds
   const gtgValue = localStorage.getItem("gtg");
+  
+  if (gtgValue === null) {
+    setTimeout(() => {
+      window.location.href = "https://plancompared.com/";
+    }, 10000);
+  }
 
-  // Always push GTM event first
+  // Always push GTM event
   window.dataLayer = window.dataLayer || [];
   dataLayer.push({ event: "gtg_clicked" });
 
@@ -48,17 +50,8 @@
     }
   } catch (e) {}
 
-  // If gtg is null, redirect to plancompared.com after 10 seconds
-  // Otherwise, dial the phone number immediately
-  if (gtgValue === null) {
-    setTimeout(() => {
-      window.location.href = "https://plancompared.com/";
-    }, 10000);
-  } else {
-    setTimeout(() => {
-      window.location.href = phoneLink;
-    }, 150);
-  }
+  // Allow normal phone call behavior (browser will show "Call this number?" prompt)
+  // No preventDefault, so the tel: link works normally
 }
     </script>
 
