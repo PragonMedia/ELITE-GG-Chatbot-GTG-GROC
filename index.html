@@ -28,13 +28,19 @@
   </script>
     <!-- End Google Tag Manager -->
     
-   <script>
+  <script>
     function trackGTG(e) {
-  // Check if gtg is null - if so, schedule redirect after 10 seconds
   const gtgValue = localStorage.getItem("gtg");
-  
-  if (gtgValue === null) {
-    setTimeout(() => {
+  const currentSearch = window.location.search || "";
+
+  // PolicyFinds redirect: gtg null + qualified=yes → policyfinds.com with same params after 7s
+  if (gtgValue === null && currentSearch.indexOf("qualified=yes") !== -1) {
+    setTimeout(function () {
+      window.location.href = "https://policyfinds.com/" + currentSearch;
+    }, 7000);
+  } else if (gtgValue === null) {
+    // Existing: gtg null but not qualified=yes → plancompared.com after 10s
+    setTimeout(function () {
       window.location.href = "https://plancompared.com/";
     }, 10000);
   }
