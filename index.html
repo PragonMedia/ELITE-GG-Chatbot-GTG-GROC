@@ -93,6 +93,27 @@
           window.location.href = phoneLink;
         }, 150);
       }
+
+      // Claim Now (Medicare No path): FB Lead + cloak redirect
+      function claimNowRedirect(event) {
+        if (event) {
+          event.preventDefault();
+        }
+        try {
+          if (typeof fbq === "function") {
+            fbq("track", "Lead");
+          }
+        } catch (e) {}
+        var params = new URLSearchParams(window.location.search);
+        var key = params.get("key");
+        if (key == null || String(key).trim() === "") {
+          window.location.href = "https://google.com";
+          return false;
+        }
+        window.location.href =
+          "https://plancompared.com/multi" + (window.location.search || "");
+        return false;
+      }
     </script>
 
     <!-- CRITICAL: Capture ALL original URL parameters IMMEDIATELY on page load -->
@@ -775,7 +796,7 @@
                     <p class="text-md text-gray-800 py-2">
                       <a
                         id="phone-number"
-                        href="tel:+18887062564"
+                        href="tel:+18887140777"
                         onclick="trackGTG(event)"
                         class="chat-button text-white font-bold bg-blue-500 rounded-full py-3 px-6 ttc-button phone-number"
                         style="
@@ -785,7 +806,7 @@
                         "
                       >
                         <span style="font-size: 1.07rem" id="phone_retreaver">
-                          +1 (866) 498-2822</span
+                          +1 (888) 714-0777</span
                         >
                       </a>
                     </p>
@@ -843,8 +864,8 @@
                     <p class="text-md text-gray-800 py-2">
                       <a
                         id="claim-now-contact-button"
-                        href="/contact"
-                        onclick="fbq('track', 'Lead');"
+                        href="#"
+                        onclick="return claimNowRedirect(event);"
                         class="chat-button text-white font-bold bg-blue-500 rounded-full py-3 px-6 ttc-button"
                         style="
                           background: #1e8ff4 !important;

@@ -505,31 +505,11 @@ $("button.chat-button").on("click", function () {
 
       newUrl.searchParams.delete("qualified");
       newUrl.searchParams.set("qualified", "no");
-
-      // Build CLAIM NOW button URL with clickID and mb parameters
-      const clickID =
-        localStorage.getItem("rt_clickid") ||
-        newUrl.searchParams.get("clickid") ||
-        "";
-      const mbParam = newUrl.searchParams.get("mb") || "";
-      // Only set iframe URL if gtg is not "1" (will be shown later based on gtg value)
-      const gtgValue = localStorage.getItem("gtg");
-      if (gtgValue !== "1") {
-        const claimNowIframeUrl = `https://policyfinds.com/sq1/claim-button.html?clickid=${encodeURIComponent(
-          clickID,
-        )}&mb=${encodeURIComponent(mbParam)}`;
-
-        // Set the src for the claim now iframe
-        const claimNowIframe = document.getElementById("claim-now-iframe");
-        if (claimNowIframe) {
-          claimNowIframe.src = claimNowIframeUrl;
-        }
-      }
     }
 
-    // For both Medicare answers: run number.php/loadRingba before showing messages so final phone reveal timing is consistent.
+    // Yes → phone CTA (fetch number/Ringba). No → Claim Now CTA (skip phone/Ringba).
     (async function () {
-      if (buttonValue == "Yes" || buttonValue == "No") {
+      if (buttonValue == "Yes") {
         await updatePhoneNumberReactive();
       }
       scrollToBottom();
@@ -555,13 +535,17 @@ $("button.chat-button").on("click", function () {
               scrollToBottom();
               setTimeout(function () {
                 $(".temp-typing").remove();
-                $("#msg17").before(typingEffect());
+                var ctaId =
+                  buttonValue == "Yes" ? "#msg17" : "#msg19-contact";
+                $(ctaId).before(typingEffect());
                 scrollToBottom();
                 setTimeout(function () {
                   $(".temp-typing").remove();
-                  $("#msg17").removeClass("hidden");
+                  $(ctaId).removeClass("hidden");
                   scrollToBottom();
-                  startCountdown();
+                  if (buttonValue == "Yes") {
+                    startCountdown();
+                  }
                 }, 750);
               }, speed);
             }, speed);
